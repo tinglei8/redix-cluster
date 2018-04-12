@@ -45,7 +45,7 @@ defmodule RedixCluster.Run do
     {:ok, "OK"}
   end
 
-  defp parse_key_from_command([term1, term2|_]), do: verify_command_key(term1, term2)
+  defp parse_key_from_command([term1, term2|rest]), do: verify_command_key(term1, term2, rest)
   defp parse_key_from_command([term]), do: verify_command_key(term, "")
   defp parse_key_from_command(_), do: {:error, :invalid_cluster_command}
 
@@ -137,11 +137,15 @@ defmodule RedixCluster.Run do
   end
   defp parse_trans_result(payload, _, _, _, _), do: payload
 
-  defp verify_command_key(term1, term2) do
-    term1
-      |> to_string
-      |> String.downcase
-      |> forbid_harmful_command(term2)
+  defp verify_command_key(term1, term2, rest \\ []) do
+    case term1 |> to_string |> String.downcase do
+      "object" ->
+        rest |> Enum.at(0)
+      cmd when cmd in ["eval", "evalsha"] ->
+        rest |> Enum.at(1)
+      cmd ->
+        cmd |> forbid_harmful_command(term2)
+    end
   end
 
   defp forbid_harmful_command("info", _), do: {:error, :invalid_cluster_command}
