@@ -40,7 +40,7 @@ defmodule RedixCluster.Mixfile do
       {:benchfella, github: "alco/benchfella", only: :bench},
       {:eredis_cluster, github: "adrienmo/eredis_cluster", only: :bench},
       {:espec, "~> 1.7", only: :test},
-      {:ex_doc, ">= 0.0.0", only: :dev}, 
+      {:ex_doc, "~> 0.19", only: :dev}, 
     ]
   end
 
