@@ -116,17 +116,17 @@ defmodule BaseBench do
    Enum.each(cmds, fn([_, key|_]) -> RedixCluster.command(~w(DEL #{key})) end)
    :timer.sleep(600)
    Enum.each(pipelines, fn(pipeline) ->
-     for cmds<- pipeline do
-       new_cmds = Enum.map(cmds, fn([_, key|_]) -> ~w(DEL #{key}) end)
+     # for cmds<- pipeline do
+       new_cmds = Enum.map(pipeline, fn([_, key|_]) -> ~w(DEL #{key}) end)
        RedixCluster.pipeline(new_cmds)
-     end
+     # end
    end)
    :timer.sleep(600)
    Enum.each(transactions, fn(tran) ->
-     for cmds<- tran do
-       new_cmds = Enum.map(cmds, fn([_, key|_]) -> ~w(DEL #{key}) end)
+     # for cmds<- tran do
+       new_cmds = Enum.map(tran, fn([_, key|_]) -> ~w(DEL #{key}) end)
        RedixCluster.transaction(new_cmds)
-       end
+     # end
    end)
   end
 

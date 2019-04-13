@@ -125,11 +125,15 @@ defmodule RedixCluster.Monitor do
 
   def start_link_redix(host, port) do
   socket_opts = get_env(:socket_opts, [])
-  backoff = get_env(:backoff, 2000)
-  max_reconnection_attempts = get_env(:max_reconnection_attempts)
+  backoff_initial = get_env(:backoff_initial, 2000)
+  backoff_max = get_env(:backoff_max, 2000)
     :erlang.process_flag(:trap_exit, true)
-    result = Redix.start_link([host: host, port: port],
-      [socket_opts: socket_opts, backoff: backoff, max_reconnection_attempts: max_reconnection_attempts])
+    result = Redix.start_link([
+      host: host, 
+      port: port, 
+      socket_opts: socket_opts, 
+      backoff_initial: backoff_initial, 
+      backoff_max: backoff_max])
     :erlang.process_flag(:trap_exit, false)
     result
   end

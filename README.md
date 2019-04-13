@@ -7,7 +7,7 @@
   1. Add redix_cluster to your list of dependencies in `mix.exs`:
     ```elixir
         def deps do
-          [{:redix_cluster, "~> 0.0.1"}]
+          [{:redix_cluster, "~> 0.0.2"}]
         end
     ```        
 
@@ -29,9 +29,9 @@
 ## Config
      ```elixir
         config :redix_cluster,
-          cluster_nodes: [%{host: '10.1.2.7', port: 7000},
-                          %{host: '10.1.2.6', port: 7000},
-                          %{host: '10.1.2.5', port: 7000}
+          cluster_nodes: [%{host: "127.0.0.1", port: 7000},
+                          %{host: "127.0.0.1", port: 7001},
+                          %{host: "127.0.0.1", port: 7002}
                          ],
         # poolboy                         
           pool_size: 5,
@@ -39,15 +39,15 @@
         
         # redix connection_opts
           socket_opts: [],
-          backoff: 2000,
-          max_reconnection_attempts: nil
+          backoff_initial: 2000,
+          backoff_max: 2000
      ```          
           
    `it's never slow down the speed of commands even redis is not on cluster`  
 
 ## Test
      ```elixir
-        MIX_EVN=test mix espec
+        MIX_ENV=test mix espec
      ```
    
 ## Bench

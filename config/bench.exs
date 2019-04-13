@@ -1,21 +1,21 @@
 use Mix.Config
 
 config :redix_cluster,
-  cluster_nodes: [%{host: '10.1.2.7', port: 7000},
-                  %{host: '10.1.2.6', port: 7000},
-                  %{host: '10.1.2.5', port: 7000}
+  cluster_nodes: [%{host: "127.0.0.1", port: 7000},
+                  %{host: "127.0.0.1", port: 7001},
+                  %{host: "127.0.0.1", port: 7002}
                  ],
   pool_size: 5,
   pool_max_overflow: 0,
 
 # connection_opts
   socket_opts: [],
-  backoff: 2000,
-  max_reconnection_attempts: nil
+  backoff_initial: 2000,
+  backoff_max: 2000
 
 config :eredis_cluster,
-  init_nodes: [{'10.1.2.7',7000},
-               {'10.1.2.6',7000},
-               {'10.1.2.6',7000}],
+  init_nodes: [{'127.0.0.1',7000},
+               {'127.0.0.1',7001},
+               {'127.0.0.1',7002}],
   pool_size: 5,
   pool_max_overflow: 0

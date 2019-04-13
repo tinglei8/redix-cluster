@@ -1,4 +1,5 @@
-%{"benchfella": {:git, "https://github.com/alco/benchfella.git", "abed12d37022012133da51b4acbbf07bd61dab32", []},
+%{
+  "benchfella": {:git, "https://github.com/alco/benchfella.git", "abed12d37022012133da51b4acbbf07bd61dab32", []},
   "connection": {:hex, :connection, "1.0.4", "a1cae72211f0eef17705aaededacac3eb30e6625b04a6117c1b2db6ace7d5976", [:mix], []},
   "crc": {:hex, :crc, "0.5.2", "6db0c06f4bb2ae6a737a32b31fd40842774d4aae903b76e5f4dae44bd4b2742c", [:mix, :make], []},
   "dialyze": {:hex, :dialyze, "0.2.1", "9fb71767f96649020d769db7cbd7290059daff23707d6e851e206b1fdfa92f9d", [:mix], []},
@@ -6,9 +7,10 @@
   "earmark": {:hex, :earmark, "1.2.3", "206eb2e2ac1a794aa5256f3982de7a76bf4579ff91cb28d0e17ea2c9491e46a4", [:mix], []},
   "eredis": {:hex, :eredis, "1.0.8", "ab4fda1c4ba7fbe6c19c26c249dc13da916d762502c4b4fa2df401a8d51c5364", [:rebar], []},
   "eredis_cluster": {:git, "https://github.com/adrienmo/eredis_cluster.git", "b838f5f576b1dd0acf18a1e1189dc1b9f4f27224", []},
-  "espec": {:git, "https://github.com/antonmi/espec.git", "a73b0067fac8b197533b514ac38c98f0795a024a", []},
+  "espec": {:hex, :espec, "1.7.0", "73badaa6e5fd536815cf6a975ebfb3bf27986b1d0b94f3be385808be8ee27944", [:mix], [{:meck, "~> 0.8.13", [hex: :meck, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_doc": {:hex, :ex_doc, "0.16.3", "cd2a4cfe5d26e37502d3ec776702c72efa1adfa24ed9ce723bb565f4c30bd31a", [:mix], [{:earmark, "~> 1.1", [hex: :earmark, optional: false]}]},
-  "meck": {:hex, :meck, "0.8.4", "59ca1cd971372aa223138efcf9b29475bde299e1953046a0c727184790ab1520", [:rebar, :make], []},
+  "meck": {:hex, :meck, "0.8.13", "ffedb39f99b0b99703b8601c6f17c7f76313ee12de6b646e671e3188401f7866", [:rebar3], [], "hexpm"},
   "poison": {:hex, :poison, "3.1.0", "d9eb636610e096f86f25d9a46f35a9facac35609a7591b3be3326e99a0484665", [:mix], []},
   "poolboy": {:hex, :poolboy, "1.5.1", "6b46163901cfd0a1b43d692657ed9d7e599853b3b21b95ae5ae0a777cf9b6ca8", [:rebar], []},
-  "redix": {:hex, :redix, "0.6.0", "b0ee9b66cd15b5fe72deeaba285e90b65dbf069b7be67f610d32d4304226b1b2", [:mix], [{:connection, "~> 1.0", [hex: :connection, optional: false]}]}}
+  "redix": {:hex, :redix, "0.9.3", "c51d66657018a9b14f3b4496b1ba70ef6a16e8414cd19b34635242ac371beb95", [:mix], [], "hexpm"},
+}
