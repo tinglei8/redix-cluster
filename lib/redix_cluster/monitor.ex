@@ -190,6 +190,6 @@ defmodule RedixCluster.Monitor do
   end
 
   defp parse_master_node([[master_host, master_port | _] | _]) do
-    %{host: master_host, port: master_port, pool: nil, password: get_env()}
+    %{host: master_host, port: master_port, pool: nil, password: get_env(:password, nil)}
   end
 end
