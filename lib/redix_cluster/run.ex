@@ -3,146 +3,189 @@ defmodule RedixCluster.Run do
 
   @type command :: [binary]
 
-  @spec command(command, Keyword.t) :: {:ok, term} |{:error, term}
+  @spec command(command, Keyword.t()) :: {:ok, term} | {:error, term}
   def command(command, opts) do
     command
-      |> parse_key_from_command()
-      |> key_to_slot_hash()
-      |> RedixCluster.SlotCache.get_pool()
-      |> query_redis_pool(command, :command, opts)
+    |> parse_key_from_command()
+    |> key_to_slot_hash()
+    |> RedixCluster.SlotCache.get_pool()
+    |> query_redis_pool(command, :command, opts)
   end
 
-  @spec pipeline([command], Keyword.t) :: {:ok, term} |{:error, term}
+  @spec pipeline([command], Keyword.t()) :: {:ok, term} | {:error, term}
   def pipeline(pipeline, opts) do
     pipeline
-      |> parse_keys_from_pipeline()
-      |> keys_to_slot_hashs()
-      |> is_same_slot_hashs()
-      |> RedixCluster.SlotCache.get_pool()
-      |> query_redis_pool(pipeline, :pipeline, opts)
+    |> parse_keys_from_pipeline()
+    |> keys_to_slot_hashs()
+    |> is_same_slot_hashs()
+    |> RedixCluster.SlotCache.get_pool()
+    |> query_redis_pool(pipeline, :pipeline, opts)
   end
 
-  @spec transaction([command], Keyword.t) :: {:ok, term} |{:error, term}
+  @spec transaction([command], Keyword.t()) :: {:ok, term} | {:error, term}
   def transaction(pipeline, opts) do
     transaction = [["MULTI"]] ++ pipeline ++ [["EXEC"]]
 
     pipeline
-      |> parse_keys_from_pipeline()
-      |> keys_to_slot_hashs()
-      |> is_same_slot_hashs()
-      |> RedixCluster.SlotCache.get_pool()
-      |> query_redis_pool(transaction, :pipeline, opts)
+    |> parse_keys_from_pipeline()
+    |> keys_to_slot_hashs()
+    |> is_same_slot_hashs()
+    |> RedixCluster.SlotCache.get_pool()
+    |> query_redis_pool(transaction, :pipeline, opts)
   end
 
   def flushdb() do
-    {version, slots_maps} =  RedixCluster.SlotCache.get_slot_maps
-    Enum.each(slots_maps, fn(cluster) ->
+    {version, slots_maps} = RedixCluster.SlotCache.get_slot_maps()
+
+    Enum.each(slots_maps, fn cluster ->
       case cluster == nil or cluster.node == nil do
         true -> nil
         false -> query_redis_pool({version, cluster.node.pool}, ~w(flushdb), :command, [])
       end
     end)
+
     {:ok, "OK"}
   end
 
-  defp parse_key_from_command([term1, term2|rest]), do: verify_command_key(term1, term2, rest)
+  defp parse_key_from_command([term1, term2 | rest]), do: verify_command_key(term1, term2, rest)
   defp parse_key_from_command([term]), do: verify_command_key(term, "")
   defp parse_key_from_command(_), do: {:error, :invalid_cluster_command}
 
   defp parse_keys_from_pipeline(pipeline) do
     case get_command_keys(pipeline) do
       {:error, _} = error -> error
-      keys -> for [term1, term2]<- keys, do: verify_command_key(term1, term2)
+      keys -> for [term1, term2] <- keys, do: verify_command_key(term1, term2)
     end
   end
 
   def key_to_slot_hash({:error, _} = error), do: error
+
   def key_to_slot_hash(key) do
     case Regex.run(~r/{\S+}/, key) do
-      nil -> RedixCluster.Hash.hash(key)
+      nil ->
+        RedixCluster.Hash.hash(key)
+
       [tohash_key] ->
         tohash_key
-          |> String.strip(?{)
-          |> String.strip(?})
-          |> RedixCluster.Hash.hash
+        |> String.strip(?{)
+        |> String.strip(?})
+        |> RedixCluster.Hash.hash()
     end
   end
 
   defp keys_to_slot_hashs({:error, _} = error), do: error
+
   defp keys_to_slot_hashs(keys) do
-    for key<-keys, do: key_to_slot_hash(key)
+    for key <- keys, do: key_to_slot_hash(key)
   end
 
   defp is_same_slot_hashs({:error, _} = error), do: error
-  defp is_same_slot_hashs([hash|_] = hashs) do
-    case Enum.all?(hashs, fn(h) -> h != nil and h == hash end) do
+
+  defp is_same_slot_hashs([hash | _] = hashs) do
+    case Enum.all?(hashs, fn h -> h != nil and h == hash end) do
       false -> {:error, :key_must_same_slot}
       true -> hash
     end
   end
 
   def get_pool_by_slot({:error, _} = error, _, _, _), do: error
+
   def get_pool_by_slot(slot, slots_maps, slots, version) do
     index = Enum.at(slots, slot)
     cluster = Enum.at(slots_maps, index - 1)
+
     case cluster == nil or cluster.node == nil do
-      true ->  {version, nil}
+      true -> {version, nil}
       false -> {version, cluster.node.pool}
     end
   end
 
   defp query_redis_pool({:error, _} = error, _command, _opts, _type), do: error
+
   defp query_redis_pool({version, nil}, _command, _opts, _type) do
     RedixCluster.Monitor.refresh_mapping(version)
     {:error, :retry}
   end
+
   defp query_redis_pool({version, pool_name}, command, type, opts) do
     try do
       pool_name
-        |> :poolboy.transaction(fn(worker) -> GenServer.call(worker, {type, command, opts}) end)
-        |> parse_trans_result({version, pool_name}, command, type, opts)
+      |> :poolboy.transaction(fn worker -> GenServer.call(worker, {type, command, opts}) end)
+      |> parse_trans_result({version, pool_name}, command, type, opts)
     catch
-       :exit, _ ->
-         RedixCluster.Monitor.refresh_mapping(version)
-         {:error, :retry}
+      :exit, _ ->
+        RedixCluster.Monitor.refresh_mapping(version)
+        {:error, :retry}
     end
   end
 
-  defp parse_trans_result({:error, %Redix.Error{message: <<"ASK", redirectioninfo::binary>>}}, {version, _pool_name}, command, type, opts) do
+  defp parse_trans_result(
+         {:error, %Redix.Error{message: <<"ASK", redirectioninfo::binary>>}},
+         {version, _pool_name},
+         command,
+         type,
+         opts
+       ) do
     [_, _slot, host_info] = Regex.split(~r/\s+/, redirectioninfo)
     [host, port] = Regex.split(~r/:/, host_info)
     RedixCluster.Pools.Supervisor.new_pool(host, port)
-    pool_name = ["Pool", host, ":", port] |> Enum.join |> String.to_atom
+    pool_name = ["Pool", host, ":", port] |> Enum.join() |> String.to_atom()
     query_redis_pool({version, pool_name}, command, type, opts)
   end
-  defp parse_trans_result({:error, %Redix.Error{message: <<"MOVED", _redirectioninfo::binary>>}}, {version, _pool_name}, _command, _type, _opts) do
+
+  defp parse_trans_result(
+         {:error, %Redix.Error{message: <<"MOVED", _redirectioninfo::binary>>}},
+         {version, _pool_name},
+         _command,
+         _type,
+         _opts
+       ) do
     RedixCluster.Monitor.refresh_mapping(version)
     {:error, :retry}
   end
+
   defp parse_trans_result({:error, :no_connection}, {version, _pool_name}, _command, _type, _opts) do
     RedixCluster.Monitor.refresh_mapping(version)
     {:error, :retry}
   end
+
   defp parse_trans_result({:error, :closed}, {version, _pool_name}, _command, _type, _opts) do
     RedixCluster.Monitor.refresh_mapping(version)
     {:error, :retry}
   end
-  defp parse_trans_result({:error, %Redix.ConnectionError{}}, {version, _pool_name}, _command, _type, _opts) do
+
+  defp parse_trans_result(
+         {:error, %Redix.ConnectionError{}},
+         {version, _pool_name},
+         _command,
+         _type,
+         _opts
+       ) do
     RedixCluster.Monitor.refresh_mapping(version)
     {:error, :retry}
   end
-  defp parse_trans_result({:error, %Redix.Error{message: <<"CLUSTERDOWN", _::binary>>}}, {version, _pool_name}, _command, _type, _opts) do
+
+  defp parse_trans_result(
+         {:error, %Redix.Error{message: <<"CLUSTERDOWN", _::binary>>}},
+         {version, _pool_name},
+         _command,
+         _type,
+         _opts
+       ) do
     RedixCluster.Monitor.refresh_mapping(version)
     {:error, :retry}
   end
+
   defp parse_trans_result(payload, _, _, _, _), do: payload
 
   defp verify_command_key(term1, term2, rest \\ []) do
-    case term1 |> to_string |> String.downcase do
+    case term1 |> to_string |> String.downcase() do
       "object" ->
         rest |> Enum.at(0)
+
       cmd when cmd in ["eval", "evalsha"] ->
         rest |> Enum.at(1)
+
       cmd ->
         cmd |> forbid_harmful_command(term2)
     end
@@ -154,11 +197,10 @@ defmodule RedixCluster.Run do
   defp forbid_harmful_command("slaveof", _), do: {:error, :invalid_cluster_command}
   defp forbid_harmful_command(_, key), do: to_string(key)
 
-  defp get_command_keys([["MULTI"]|_]), do: {:error, :no_support_transaction}
+  defp get_command_keys([["MULTI"] | _]), do: {:error, :no_support_transaction}
   defp get_command_keys(commands), do: make_cmd_key(commands, [])
 
   defp make_cmd_key([], acc), do: acc
-  defp make_cmd_key([[x, y|_]|rest], acc), do: make_cmd_key(rest, [[x, y] | acc])
-  defp make_cmd_key([_|rest], acc), do: make_cmd_key(rest, acc)
-
+  defp make_cmd_key([[x, y | _] | rest], acc), do: make_cmd_key(rest, [[x, y] | acc])
+  defp make_cmd_key([_ | rest], acc), do: make_cmd_key(rest, acc)
 end
