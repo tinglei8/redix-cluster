@@ -33,7 +33,7 @@ defmodule RedixCluster.Pools.Supervisor do
           max_overflow: pool_max_overflow
         ]
 
-        worker_args = [host: host, port: port, pool_name: pool_name]
+        worker_args = [host: host, port: port, pool_name: pool_name, password: get_env(:password)]
         child_spec = :poolboy.child_spec(pool_name, pool_args, worker_args)
         {result, _} = Supervisor.start_child(__MODULE__, child_spec)
         {result, pool_name}

@@ -18,6 +18,7 @@ defmodule RedixCluster.Worker do
       Redix.start_link(
         host: worker[:host],
         port: worker[:port],
+        password: worker[:password],
         socket_opts: socket_opts,
         backoff_initial: backoff_initial,
         backoff_max: backoff_max

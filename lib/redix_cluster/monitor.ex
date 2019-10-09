@@ -143,12 +143,14 @@ defmodule RedixCluster.Monitor do
     socket_opts = get_env(:socket_opts, [])
     backoff_initial = get_env(:backoff_initial, 2000)
     backoff_max = get_env(:backoff_max, 2000)
+    password = get_env(:password, nil)
     :erlang.process_flag(:trap_exit, true)
 
     result =
       Redix.start_link(
         host: host,
         port: port,
+        password: password,
         socket_opts: socket_opts,
         backoff_initial: backoff_initial,
         backoff_max: backoff_max
@@ -188,6 +190,6 @@ defmodule RedixCluster.Monitor do
   end
 
   defp parse_master_node([[master_host, master_port | _] | _]) do
-    %{host: master_host, port: master_port, pool: nil}
+    %{host: master_host, port: master_port, pool: nil, password: get_env()}
   end
 end
