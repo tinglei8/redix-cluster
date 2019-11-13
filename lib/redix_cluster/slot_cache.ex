@@ -76,12 +76,15 @@ defmodule RedixCluster.SlotCache do
   def handle_info(_info, state), do: {:noreply, state}
 
   defp get_pool_by_slot(slot, slots_maps, slots) do
-    index = Enum.at(slots, slot)
-    cluster = Enum.at(slots_maps, index - 1)
+    index = Enum.at(slots, slot) 
+    # HERE WE NEED TO CHECK `index` IS NOT NIL
+    if index do
+      cluster = Enum.at(slots_maps, index - 1)
 
-    case cluster == nil or cluster.node == nil do
-      true -> nil
-      false -> cluster.node.pool
+      case cluster == nil or cluster.node == nil do
+        true -> nil
+        false -> cluster.node.pool
+      end
     end
   end
 end
