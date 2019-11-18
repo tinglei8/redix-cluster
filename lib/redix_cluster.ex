@@ -35,8 +35,8 @@ defmodule RedixCluster do
   @doc """
     Starts RedixCluster Application by config.exs
   """
-  @spec start(atom, :permanent | :transient | :temporary) :: Supervisor.on_start
-  def start(_type, _args), do: RedixCluster.Supervisor.start_link
+  @spec start(atom, :permanent | :transient | :temporary) :: Supervisor.on_start()
+  def start(_type, _args), do: RedixCluster.Supervisor.start_link()
 
   @doc """
   `Make sure` CROSSSLOT Keys in request hash to the same slot
@@ -65,10 +65,10 @@ defmodule RedixCluster do
       {:ok, ["1", "2"]}
 
   """
-  @spec command(String.t, Keyword.t) ::
-    {:ok, Redix.Protocol.redis_value} |
-    {:error, Redix.Error.t | atom}
-  def command(command, opts \\[]), do: command(command, opts, 0)
+  @spec command(String.t(), Keyword.t()) ::
+          {:ok, Redix.Protocol.redis_value()}
+          | {:error, Redix.Error.t() | atom}
+  def command(command, opts \\ []), do: command(command, opts, 0)
 
   @doc """
     This function works exactly like `RedixCluster.command/2` but:
@@ -85,10 +85,10 @@ defmodule RedixCluster do
          (redix_cluster) lib/redix_cluster.ex:40: RedixCluster.command!/2
 
   """
-  @spec command!(String.t, Keyword.t) :: Redix.Protocol.redis_value
-  def command!(command, opts \\[]) do
+  @spec command!(String.t(), Keyword.t()) :: Redix.Protocol.redis_value()
+  def command!(command, opts \\ []) do
     command(command, opts)
-      |> parse_error
+    |> parse_error
   end
 
   @doc """
@@ -108,10 +108,10 @@ defmodule RedixCluster do
       {:error, :key_must_same_slot}
 
   """
-  @spec pipeline([command], Keyword.t) ::
-     {:ok, [Redix.Protocol.redis_value]} |
-     {:error, atom}
-  def pipeline(commands, opts\\ []), do: pipeline(commands, opts, 0)
+  @spec pipeline([command], Keyword.t()) ::
+          {:ok, [Redix.Protocol.redis_value()]}
+          | {:error, atom}
+  def pipeline(commands, opts \\ []), do: pipeline(commands, opts, 0)
 
   @doc """
   `Make sure` CROSSSLOT Keys in request hash to the same slot
@@ -133,8 +133,8 @@ defmodule RedixCluster do
           (redix_cluster) lib/redix_cluster.ex:215: RedixCluster.parse_error/1
 
   """
-  @spec pipeline!([command], Keyword.t) :: [Redix.Protocol.redis_value]
-  def pipeline!(commands, opts\\ []) do
+  @spec pipeline!([command], Keyword.t()) :: [Redix.Protocol.redis_value()]
+  def pipeline!(commands, opts \\ []) do
     pipeline(commands, opts)
     |> parse_error
   end
@@ -150,9 +150,9 @@ defmodule RedixCluster do
       iex> RedixCluster.transaction([~w(SET {samehash}k3 foo), ~w(INCR {samehash}k2), ~w(GET {samehash}k1)])
       {:ok, ["OK", "QUEUED", "QUEUED", "QUEUED", ["OK", 2, nil]]}
   """
-  @spec transaction([command], Keyword.t) ::
-    {:ok, [Redix.Protocol.redis_value]} | {:error, term}
-  def transaction(commands, opts\\ []), do: transaction(commands, opts, 0)
+  @spec transaction([command], Keyword.t()) ::
+          {:ok, [Redix.Protocol.redis_value()]} | {:error, term}
+  def transaction(commands, opts \\ []), do: transaction(commands, opts, 0)
 
   def flushdb(), do: RedixCluster.Run.flushdb()
 
@@ -172,43 +172,54 @@ defmodule RedixCluster do
           (redix_cluster) lib/redix_cluster.ex:215: RedixCluster.parse_error/1
 
   """
-  @spec transaction!([command], Keyword.t) :: [Redix.Protocol.redis_value]
-  def transaction!(commands, opts\\ []) do
+  @spec transaction!([command], Keyword.t()) :: [Redix.Protocol.redis_value()]
+  def transaction!(commands, opts \\ []) do
     transaction(commands, opts)
-      |> parse_error
+    |> parse_error
   end
 
   # whenever the application is updated.
   def config_change(_changed, _new, _removed), do: :ok
 
   defp command(_command, _opts, count) when count >= @max_retry, do: {:error, :no_connection}
+
   defp command(command, opts, count) do
-    unless count==0, do: :timer.sleep(@redis_retry_delay)
+    unless count == 0, do: :timer.sleep(@redis_retry_delay)
+
     RedixCluster.Run.command(command, opts)
     |> need_retry(command, opts, count, :command)
   end
 
   defp pipeline(_commands, _opts, count) when count >= @max_retry, do: {:error, :no_connection}
+
   defp pipeline(commands, opts, count) do
-    unless count==0, do: :timer.sleep(@redis_retry_delay)
+    unless count == 0, do: :timer.sleep(@redis_retry_delay)
+
     RedixCluster.Run.pipeline(commands, opts)
-      |> need_retry(commands, opts, count, :pipeline)
+    |> need_retry(commands, opts, count, :pipeline)
   end
 
   defp transaction(_commands, _opts, count) when count >= @max_retry, do: {:error, :no_connection}
+
   defp transaction(commands, opts, count) do
-    unless count==0, do: :timer.sleep(@redis_retry_delay)
+    unless count == 0, do: :timer.sleep(@redis_retry_delay)
+
     RedixCluster.Run.transaction(commands, opts)
-      |> need_retry(commands, opts, count, :transaction)
+    |> need_retry(commands, opts, count, :transaction)
   end
 
-  defp need_retry({:error, :retry}, command, opts, count, :command), do: command(command, opts, count+1)
-  defp need_retry({:error, :retry}, commands, opts, count, :pipeline), do: pipeline(commands, opts, count+1)
-  defp need_retry({:error, :retry}, commands, opts, count, :transaction), do: transaction(commands, opts, count+1)
+  defp need_retry({:error, :retry}, command, opts, count, :command),
+    do: command(command, opts, count + 1)
+
+  defp need_retry({:error, :retry}, commands, opts, count, :pipeline),
+    do: pipeline(commands, opts, count + 1)
+
+  defp need_retry({:error, :retry}, commands, opts, count, :transaction),
+    do: transaction(commands, opts, count + 1)
+
   defp need_retry(result, _command, _count, _opts, _type), do: result
 
   defp parse_error({:ok, result}), do: result
-  defp parse_error({:error, %Redix.Error{} = error}), do: raise error
-  defp parse_error({:error, reason}), do: raise RedixCluster.Error, reason
-
+  defp parse_error({:error, %Redix.Error{} = error}), do: raise(error)
+  defp parse_error({:error, reason}), do: raise(RedixCluster.Error, reason)
 end
